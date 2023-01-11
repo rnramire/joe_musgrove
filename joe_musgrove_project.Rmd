@@ -1,0 +1,398 @@
+---
+title: "Joe Musgrove: The Ear Controversy"
+author: "Ryan Ramirez"
+date: "2023-01-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Background
+
+
+In the MLB, it is against the rules to use a foreign substance by pitchers. Only
+rosin is allowed to maintain the integrity of the game. Illegal foreign substances
+include pine tar, spider tack, or any sticky stuff. These are illegal because
+previous research has found that spin rates increase dramatically when these
+foreign substances are used by pitchers. In the recent years, the MLB has advocated
+for pitchers to be checked before, during, and after the games for foreign substances.
+
+One case in particular, is the controversy of Joe Musgrove's ears during the 2022
+wild card series between the San Diego Padres and the New York Mets. In the
+bottom of the 6th inning, Buck Showalter, manager of the Mets, talked to the 
+umpires to check Joe Musgrove for any foreign substances. Throughout the game,
+there was focus on Musgrove's ears and how his spin rates and velocity were higher
+than average. In addition, Musgrove was giving the Mets a hard time and was 
+keeping them scoreless. 
+
+When the umpires checked Musgrove, they rubbed his ears and found no foreign
+substances. Musgrove continued to pitch and continued to dominate on the mound.
+In this report, I will investigate whether it was possible Musgrove was 
+cheating and compare this game to his regular season performance.
+
+## Processing the Data
+
+
+This data was gathered from a Kaggle dataset that was modified from Baseball 
+Savant. This is a public source and is in association with the MLB for statcast
+and other baseball statistics. They gather their data directly from 
+MLB Advanced Media, L.P.
+
+
+```{r, include = FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+
+Changed the format of the game_date from string to Date.
+```{r loading the data, echo = F }
+dat <- read_csv("C:/Users/kashi/OneDrive/Desktop/joe_musgrove/MLB_Musgrove-Joe_Reg-Post-Season_Pitch-Data.csv")
+full_dat <- read_csv("C:/Users/kashi/OneDrive/Desktop/joe_musgrove/savant_data.csv")
+dat <- dat %>%
+  mutate(game_date=as.Date(game_date, "%m/%d/%Y"))
+head(dat)
+
+```
+
+
+## Analysis
+
+
+### Mets Game VS. 2022 Regular Season
+
+
+I will investigate the average spin rate for each pitch type including: slider,
+curveball, 4-seam fastball, changeup, sinker, and cutter. I will compare the 
+spin rates with the individual Mets game and the entire 2022 season.
+```{r mets game vs Regular Season, results='hide'}
+mets <- dat%>%
+  filter(game_date == '2022-10-09')%>%
+  arrange(at_bat_number, strikes, at_bat_outcome)
+head(mets)
+
+mets_avg_spin <- mets%>%
+  group_by(pitch_name)%>%
+  summarise(avg_spin_rate = mean(release_spin_rate))%>%
+  mutate(season_type = 'Mets Game')
+
+reg_spin_rate <- dat%>%
+  filter(season_type == 'Regular Season')%>%
+  group_by(pitch_name)%>%
+  summarise(avg_spin_rate = mean(release_spin_rate))%>%
+  mutate(season_type = 'Regular Season')
+
+mets_vs_reg_spinrate <- rbind(mets_avg_spin, reg_spin_rate)
+```
+
+
+The following plot shows an increase in spin rates for all of Musgrove's pitches.
+On average, Musgrove had a higher spin rate than his season's average. This
+will obviously open some eyes to check for anything fishy or in other words, 
+sticky.
+
+We see that Slider had a significant jump in RPM's during the Mets game. Sliders
+and Curveballs are called breaking balls and have the most movement, therefore, 
+they will have the highest spin rates. We see this and both pitches had an
+increase in spin rates during the Mets game.
+
+```{r mets plot, echo = F}
+ggplot(data = mets_vs_reg_spinrate) +
+  geom_point(aes(x = pitch_name, y = avg_spin_rate, shape = season_type, color =
+                   season_type), size = 4) + 
+  scale_y_continuous(name="Spin Rate", limits=c(1900, 3000))+
+ annotate('text', x=6, y=2850, label='+249.19 RPM', color = 'red') +
+  annotate('text', x=2.3, y=2050, label='+171.15 RPM') +
+  annotate('text', x=1.6, y=2620, label='+106.71 RPM') +
+  annotate('text', x=3.6, y=2800, label='+176.64 RPM') +
+  annotate('text', x=4.6, y=2640, label='+116.67 RPM') +
+  annotate('text', x=5.6, y=2500, label='+105.55 RPM') +
+  labs(title = "Average Spin Rate", subtitle = "Mets Wild Card Game Vs. Regular Season",
+       caption = "Data source: Baseball Savant", color ="", shape = "",
+       x = "Pitch Type")
+```
+
+### Regular Season VS Post Season
+
+
+I will compare the spin rates between the regular season and the post season.
+```{r Regular Season vs Post Season, include = F}
+avg_spin <- dat%>%
+  group_by(season_type, pitch_name)%>%
+  summarise(avg_spin_rate = mean(release_spin_rate), .groups = 'drop')
+```
+
+The following plots shows that the average spin rate during the post season was
+higher than the regular season. This does take in account of the Mets game,
+however, we found that the averages in the post season were still higher.
+
+This shows that it was not only the Mets game, but the other playoff games 
+displayed a higher spin rate for all pitches.
+
+```{r reg season vs post season, echo = F}
+ggplot(data = avg_spin)+
+  geom_point(aes(x = pitch_name, y = avg_spin_rate, shape = season_type, color = season_type), size = 4)+
+  annotate('text', x=6, y=2850, label='+192.60 RPM', color = 'red') +
+  annotate('text', x=2.3, y=2020, label='+101.94 RPM') +
+  annotate('text', x=1.6, y=2620, label='+90.31 RPM') +
+  annotate('text', x=3.6, y=2800, label='+116.26 RPM') +
+  annotate('text', x=4.6, y=2640, label='+83.30 RPM') +
+  annotate('text', x=5.6, y=2500, label='+79.35 RPM') +
+  labs(title = "Average Spin Rate", subtitle = "Post Season Vs. Regular Season",
+       caption = "Data source: Baseball Savant", color ="", shape = "",
+       x = "Pitch Type")
+
+
+post_without_mets <- dat%>%
+  group_by(pitch_name)%>%
+  filter(game_date != "2022-10-09" & season_type == 'Post Season')%>%
+  summarise(avg_spin_rate = mean(release_spin_rate))
+
+
+ggplot(data = post_without_mets, aes(x = pitch_name, y = avg_spin_rate, color = "pink"))+
+  geom_point()+
+  geom_point( data = reg_spin_rate, aes(x = pitch_name, y = avg_spin_rate, color = "blue"))+
+  annotate('text', x=6, y=2800, label='+165.11 RPM', color = 'red') +
+  annotate('text', x=2.3, y=2020, label='+80.60 RPM') +
+  annotate('text', x=1.6, y=2620, label='+83.61 RPM') +
+  annotate('text', x=3.6, y=2800, label='+101.39 RPM') +
+  annotate('text', x=4.6, y=2640, label='+60.21 RPM') +
+  annotate('text', x=5.6, y=2500, label='+60.35 RPM') +
+  labs(title = "Average Spin Rate", subtitle = "Post Season (w/o Mets Game) Vs. Regular Season",
+       caption = "Data source: Baseball Savant", color ="", shape = "",
+       x = "Pitch Type", y = "Spin Rate")+
+  scale_colour_manual(values =c('pink'='pink','blue'='blue'), labels = c('Post Season','Regular Season'))
+```
+
+
+### More Visualizations
+
+
+#### Trends
+
+
+I created a line graph showing over time the average spin rates for each pitch.
+We see that there are fluctuations in the spin rates, however, upon closer
+examination we see a large positive trend at the end of September, where the 
+playoffs begin.
+
+```{r check the yearly data of each pitch and its average spin rate, echo = F}
+reg_spin <- dat%>%
+  group_by(pitch_name, game_date)%>%
+  summarise(avg_spin_rate = mean(release_spin_rate), .groups = 'drop')
+
+ggplot(data = reg_spin)+
+  geom_line(aes(x = game_date, y = avg_spin_rate, color = pitch_name))+
+  scale_x_date(date_labels="%b",date_breaks  ="1 month")+
+  geom_hline(yintercept = 2559.32, linetype = 3)+
+  geom_hline(yintercept = 1971.61, linetype = 3)+
+  geom_hline(yintercept = 2721.77, linetype = 3)+
+  geom_hline(yintercept = 2581.22, linetype = 3)+
+  geom_hline(yintercept = 2435.65, linetype = 3)+
+  geom_hline(yintercept = 2714.75, linetype = 3)+
+  labs(title = "Average Spin Rates for 2022 Season", caption = "Data Source: baseball Savant",
+       subtitle = "Every game Joe Musgrove started",
+       x = "Date", y = "Spin Rate")
+  
+post_spin <- dat %>%
+  filter(game_date >= '2022-09-01')%>%
+  group_by(pitch_name, game_date)%>%
+  summarise(avg_spin_rate = mean(release_spin_rate), .groups = 'drop')
+
+ggplot(data = post_spin)+
+  geom_line(aes(x = game_date, y = avg_spin_rate, color = pitch_name))+
+  scale_x_date(date_labels="%m/%d",date_breaks  ="1 week")+
+  labs(title = "Average Spin Rates for 2022 Season", caption = "Data Source: baseball Savant",
+       subtitle = "September through October Games",
+       x = "Date", y = "Spin Rate") +
+  geom_vline(xintercept = as.numeric(post_spin$game_date[7]), linetype = 4)
+```
+#### Distribution of Pitches and Spin Rates
+
+
+I used boxplots and histograms to show how Musgrove's pitches were distributed by 
+spin rate. I was able to see the difference in distributions between the 
+regular season and the post season as well as the regular season and the Mets 
+game. I found that the regular season distribution looks to have normality
+and this will be useful for a statistical analysis later.
+
+```{r distribution of pitches, echo = F}
+ggplot(dat)+
+  geom_histogram(aes(x = release_spin_rate, color = season_type), fill = "white", alpha = 0.2, binwidth= 30, position = "identity") +
+  facet_wrap(~pitch_name, nrow = 3)+
+  labs(title = "Distribution of Pitches", x = "Spin Rate", color="", caption = "Data Source:Baseball Savant")
+```
+
+```{r boxplots, echo = F}
+ggplot(data = dat)+
+  geom_boxplot(aes(x = season_type, y = release_spin_rate))+
+  facet_wrap(~pitch_name)+
+  labs(title = "Distribution of Spin Rates", caption = "Data source:Baseball Savant", x = "Season Type", y= "Spin Rate")
+  
+
+dat%>%
+  filter(game_date <= '2022-10-09')%>%
+  ggplot() +
+geom_boxplot(aes(x = season_type, y = release_spin_rate))+
+  facet_wrap(~pitch_name)+
+  labs(title = "Distribution of Spin Rates", caption = "Data source:Baseball Savant", x = "Season Type", y= "Spin Rate", subtitle = "Mets Game VS Regular Season") +
+  scale_x_discrete(labels=c("Post Season" = "Mets Game"))
+```
+
+
+#### Statistical Analysis of Average Spin Rates
+
+
+We saw that there is a significant difference in average spin rates between the 
+regular season and post season. To give more evidence, we will run a t.test to
+compare the averages of the Mets game with the regular season and the post season
+with the regular season.
+
+I ran a log transformation to consider the assumption of normality for a smaller
+sample size for the post season and the Mets game. A wilcox test was also done to
+account for these assumptions being ignored.
+
+
+```{r statistical analysis, echo = F}
+postseason <- dat%>%
+  filter(season_type=='Post Season')
+regular_season <- dat%>%
+  filter(season_type == 'Regular Season')
+
+postseason_curve <- postseason%>%
+  filter(pitch_name == 'Curveball')
+
+mets_curve <- mets%>%
+  filter(pitch_name == 'Curveball')
+
+regular_season_curve <- regular_season%>%
+  filter(pitch_name == 'Curveball')
+```
+
+Below we find that the post season curveball average spin rate is statistically
+greater than the regular season:
+
+```{r, echo = F}
+t.test(postseason_curve$release_spin_rate, mu = mean(regular_season_curve$release_spin_rate),
+       alternative = "greater")
+
+t.test(log(postseason_curve$release_spin_rate), mu = log(mean(regular_season_curve$release_spin_rate)),
+       alternative = "greater")
+
+wilcox.test(postseason_curve$release_spin_rate, mu = mean(regular_season_curve$release_spin_rate),
+       alternative = "greater")
+
+```
+
+
+Below we find that the post season slider average spin rate is statistically
+greater than the regular season:
+
+
+```{r, echo = F}
+postseason_slider <- postseason%>%
+  filter(pitch_name == 'Slider')
+
+mets_slider <- mets%>%
+  filter(pitch_name == 'Slider')
+
+regular_season_slider <- regular_season%>%
+  filter(pitch_name == 'Slider')
+
+t.test(postseason_slider$release_spin_rate, mu = mean(regular_season_slider$release_spin_rate),
+       alternative = "greater")
+
+t.test(log(postseason_slider$release_spin_rate), mu = log(mean(regular_season_slider$release_spin_rate)),
+       alternative = "greater")
+
+wilcox.test(postseason_slider$release_spin_rate, mu = mean(regular_season_slider$release_spin_rate),
+       alternative = "greater")
+```
+
+
+Below we find that the mets game curveball average spin rate is statistically
+greater than the regular season:
+
+```{r, echo = F}
+
+t.test(mets_curve$release_spin_rate, mu = 
+       mean(regular_season_curve$release_spin_rate),
+       alternative = "greater")
+
+t.test(log(mets_curve$release_spin_rate), mu = log(mean(regular_season_curve$release_spin_rate)),
+       alternative = "greater")
+
+wilcox.test(mets_curve$release_spin_rate, mu = mean(regular_season_curve$release_spin_rate),
+       alternative = "greater")
+```
+
+Below we find that the mets game slider average spin rate is statistically
+greater than the regular season:
+
+```{r, echo = F}
+t.test(mets_slider$release_spin_rate, mu = mean(regular_season_slider$release_spin_rate),
+       alternative = "greater")
+
+t.test(log(mets_slider$release_spin_rate), mu = log(mean(regular_season_slider$release_spin_rate)),
+       alternative = "greater")
+
+wilcox.test(mets_slider$release_spin_rate, mu = mean(regular_season_slider$release_spin_rate),
+       alternative = "greater")
+
+
+```
+
+
+Below we find that the postseason average spin rate is statistically
+greater than the regular season:
+
+
+```{r, echo = F}
+t.test(mets$release_spin_rate, mu = mean(regular_season$release_spin_rate),
+       alternative = "greater")
+
+t.test(log(mets$release_spin_rate), mu = log(mean(regular_season$release_spin_rate)),
+       alternative = "greater")
+
+wilcox.test(mets$release_spin_rate, mu = mean(regular_season$release_spin_rate),
+       alternative = "greater")
+```
+
+
+Overall, we found in all cases that the average spin rates during the post season
+and the mets game were statistically greater than the regular season average.
+
+
+## Conclusion
+
+Based on the recurring pattern and analysis of higher spin rates during the Mets
+game compared to the regular season, we can believe that Joe Musgrove could have
+been using a foreign substance to increase his pitching spin rate. The statistics
+and the visuals show these increases can infer a substance use.
+
+However, we know that the umpires did a substance check on Joe Musgrove and they
+found nothing suspicious. Is this just complacency by the umpires? Or did they
+miss a spot? We will never know unless Musgrove confesses to tell the truth. All
+we know is that Musgrove's spin rates were higher than average. Therefore, he
+was either cheating or he was just having a great game as an ace. 
+
+There are other factors that can attribute to this higher spin rate. For example,
+there were other MLB players indicating that players use "Red Hot" on their ears
+to get them psyched up and pitch or perform better. Another factor is that it was
+the playoffs and these are the most important games for players. Musgrove must 
+have been focused and more psyched to do his best, therefore, we see higher numbers
+during the playoffs.
+
+An argument that goes against the use of foreign substances is that there was not
+an enormous change in spin rate in Musgrove's game compared to recent studies on
+the use of foreign substances. Another [study](https://proplayai.com/a-sticky-situation/) found that spin rates increased from 1600 rpm to 2200 rpm, a 600 rpm increase. 
+This is a huge difference compared to Musgrove's increase of 250 rpm. Therefore,
+it could be the case that there was no foreign substance.
+
+In conclusion, it is possible that Joe Musgrove was cheating based on the higher
+numbers across the board. However, we must consider the situation and other factors.
+Cheating is never good for the game, but it is always great to see a pitcher
+perform at their best.
